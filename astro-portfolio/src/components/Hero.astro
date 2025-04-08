@@ -1,0 +1,181 @@
+---
+// src/components/Hero.astro
+---
+<section class="hero">
+    <div class="hero-shapes">
+        <div class="hero-shape shape-1"></div>
+        <div class="hero-shape shape-2"></div>
+        <div class="hero-shape shape-3"></div>
+    </div>
+    <div class="container hero-content">
+        <span class="hero-eyebrow">Data Science & Renewable Energy Expert</span>
+        <h1 class="hero-title">Transforming Energy <span>Through Data</span></h1>
+        <p class="hero-description">
+            Bridging the gap between advanced analytics and sustainable energy solutions.
+            Passionate about driving the energy transition with data-driven innovation.
+        </p>
+        <div class="hero-cta">
+            <a href="#projects" class="btn btn-primary">
+                Explore My Work <i class="fas fa-arrow-right"></i>
+            </a>
+            <a href="#contact" class="btn btn-outline">
+                Get In Touch <i class="fas fa-envelope"></i>
+            </a>
+        </div>
+    </div>
+</section>
+
+<style>
+    .hero {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(135deg, var(--dark), var(--dark-light));
+        color: var(--white);
+        padding-top: var(--header-height); /* Account for fixed header */
+        padding-bottom: 4rem; /* Add some bottom padding */
+    }
+
+    .hero-shapes {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        z-index: 0;
+    }
+
+    .hero-shape {
+        position: absolute;
+        border-radius: 50%;
+        opacity: 0.7;
+    }
+
+    .shape-1 {
+        top: 10%;
+        right: 10%;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle at center, rgba(37, 99, 235, 0.2), transparent 70%);
+        animation: float 15s infinite ease-in-out;
+    }
+
+    .shape-2 {
+        bottom: 15%;
+        left: 5%;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle at center, rgba(16, 185, 129, 0.2), transparent 70%);
+        animation: float 20s infinite ease-in-out reverse;
+    }
+
+    .shape-3 {
+        top: 40%;
+        left: 30%;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle at center, rgba(139, 92, 246, 0.15), transparent 70%);
+        animation: float 12s infinite ease-in-out 2s;
+    }
+
+    @keyframes float {
+        0%, 100% {
+            transform: translateY(0) scale(1);
+        }
+        50% {
+            transform: translateY(-20px) scale(1.05);
+        }
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 1;
+        max-width: 800px;
+    }
+
+    .hero-eyebrow {
+        display: inline-block;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(90deg, var(--primary), var(--accent));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        font-size: clamp(0.875rem, 1.5vw, 1rem);
+    }
+
+    .hero-title {
+        margin-bottom: 1.5rem;
+        line-height: 1.1;
+        font-size: clamp(2.5rem, 5vw, 4.5rem);
+        letter-spacing: -0.03em;
+        color: var(--white); /* Ensure title is white */
+    }
+
+    .hero-title span {
+        display: block;
+        color: var(--secondary);
+    }
+
+    .hero-description {
+        font-size: clamp(1.1rem, 2vw, 1.3rem);
+        max-width: 600px;
+        margin-bottom: 2.5rem;
+        opacity: 0.9;
+        color: rgba(255, 255, 255, 0.85); /* Slightly adjust opacity/color if needed */
+    }
+
+    .hero-cta {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    /* Hero-specific button styles (override base .btn if needed) */
+    .btn-primary {
+        background-color: var(--primary);
+        color: var(--white);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-primary:hover {
+        background-color: var(--primary-dark);
+        transform: translateY(-3px);
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+    }
+
+    .btn-outline {
+        background-color: transparent;
+        color: var(--white);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-outline:hover {
+        border-color: var(--white);
+        background-color: rgba(255, 255, 255, 0.1);
+        transform: translateY(-3px);
+    }
+
+    @media (max-width: 768px) {
+        .hero {
+            min-height: auto; /* Adjust height on smaller screens */
+            padding-top: calc(var(--header-height) + 2rem); /* Add more space below header */
+            padding-bottom: 5rem;
+        }
+        .hero-cta {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .shape-1, .shape-2, .shape-3 { /* Scale down shapes on mobile */
+            transform: scale(0.7);
+        }
+        .shape-1 { top: 5%; right: 0%; }
+        .shape-2 { bottom: 5%; left: -5%; }
+        .shape-3 { top: 30%; left: 10%; }
+    }
+</style> 

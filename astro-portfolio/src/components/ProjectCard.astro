@@ -1,0 +1,159 @@
+---
+// src/components/ProjectCard.astro
+import type { ImageMetadata } from 'astro';
+import { Image } from 'astro:assets'; // Use Astro's Image component for optimization
+
+interface Props {
+    title: string;
+    description: string;
+    tags: string[];
+    imageSrc: string; // Expecting path relative to /public, e.g., /images/project1.jpg
+    imageAlt: string;
+    linkHref: string;
+}
+
+const { title, description, tags, imageSrc, imageAlt, linkHref } = Astro.props;
+---
+
+<div class="project-card">
+    <div class="project-image">
+        <!-- Use placeholder if actual image isn't provided -->
+        <img src={imageSrc || "/images/placeholder_400x220.png"} alt={imageAlt} loading="lazy" width="400" height="220" />
+        <div class="project-overlay"></div>
+    </div>
+    <div class="project-content">
+        <div class="project-tags">
+            {tags.map(tag => (
+                <span class="project-tag">{tag}</span>
+            ))}
+        </div>
+        <h3 class="project-title">{title}</h3>
+        <p class="project-description">{description}</p>
+        <a href={linkHref} class="project-link">
+            View Case Study <i class="fas fa-arrow-right"></i>
+        </a>
+    </div>
+</div>
+
+<style>
+    .project-card {
+        background-color: var(--white);
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        transition: var(--transition);
+        height: 100%; /* Ensure cards have consistent height in grid */
+        display: flex;
+        flex-direction: column;
+    }
+
+    .project-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .project-image {
+        height: 220px;
+        position: relative;
+        overflow: hidden;
+        background-color: var(--light); /* Background for placeholder/loading */
+    }
+
+    .project-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.7s ease;
+    }
+
+    .project-card:hover .project-image img {
+        transform: scale(1.05);
+    }
+
+    .project-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(0deg, rgba(15, 23, 42, 0.7) 0%, transparent 100%);
+        /* Optional: Add content on hover */
+        opacity: 0.8; /* Adjust overlay darkness */
+        transition: var(--transition);
+    }
+    /* Optional: Slightly fade overlay on hover */
+    /* .project-card:hover .project-overlay {
+        opacity: 0.6;
+    } */
+
+    .project-content {
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        flex: 1; /* Allow content to fill remaining space */
+    }
+
+    .project-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .project-tag {
+        padding: 0.4rem 1rem;
+        background-color: rgba(37, 99, 235, 0.1);
+        color: var(--primary);
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .project-title {
+        font-size: clamp(1.3rem, 2.5vw, 1.5rem);
+        margin-bottom: 1rem;
+        color: var(--dark);
+    }
+
+    .project-description {
+        color: var(--gray);
+        margin-bottom: 1.5rem;
+        flex: 1; /* Allow description to push link down */
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+
+    .project-link {
+        display: inline-flex;
+        align-items: center;
+        color: var(--primary);
+        font-weight: 600;
+        text-decoration: none;
+        transition: var(--transition);
+        margin-top: auto; /* Push link to bottom */
+        align-self: flex-start; /* Align link to the left */
+    }
+
+    .project-link:hover {
+        color: var(--primary-dark);
+    }
+
+    .project-link i, .project-link svg {
+        margin-left: 0.5rem;
+        transition: transform 0.3s;
+    }
+
+    .project-link:hover i, .project-link:hover svg {
+        transform: translateX(4px);
+    }
+
+    @media (max-width: 480px) {
+        .project-tag {
+            font-size: 0.75rem;
+            padding: 0.3rem 0.8rem;
+        }
+        .project-content {
+             padding: 1.5rem;
+        }
+    }
+</style> 

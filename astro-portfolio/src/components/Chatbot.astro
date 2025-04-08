@@ -1,0 +1,645 @@
+---
+// src/components/Chatbot.astro
+// This component encapsulates the chatbot toggle, container, styles, and JS logic.
+// The JS logic uses a hardcoded knowledge base for now.
+// TODO: Replace hardcoded knowledgeBase with actual API calls to a backend/LLM service.
+---
+
+<!-- Chatbot Toggle Button -->
+<div class="chatbot-toggle" id="chatbot-toggle" title="Chat with AI Assistant">
+    <i class="fas fa-comment"></i>
+</div>
+
+<!-- Chatbot Container -->
+<div class="chatbot-container" id="chatbot-container">
+    <div class="chatbot-header">
+        <div class="chatbot-title">
+            <div class="bot-avatar">
+                <i class="fas fa-robot"></i>
+            </div>
+            <span>Manuel's AI Assistant</span>
+        </div>
+        <button class="chatbot-close" id="chatbot-close" aria-label="Close chat">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="chatbot-messages" id="chatbot-messages">
+        <!-- Messages will be added here dynamically -->
+        <!-- Thinking indicator placeholder -->
+        <!-- <div class="bot-thinking">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div> -->
+    </div>
+    <div class="chatbot-input-section">
+        <div class="chatbot-suggestions" id="chatbot-suggestions">
+             <!-- Suggestion chips will be added here -->
+        </div>
+        <div class="chatbot-input-container">
+            <input type="text" class="chatbot-input" id="chatbot-input" placeholder="Ask me anything..." aria-label="Chat input" />
+            <button class="chatbot-send" id="chatbot-send" aria-label="Send message">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Chatbot Styles */
+    .chatbot-toggle {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: var(--primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3);
+        cursor: pointer;
+        z-index: 999;
+        transition: all 0.3s ease;
+        border: none; /* Reset button border */
+    }
+
+    .chatbot-toggle:hover {
+        transform: scale(1.1);
+        background-color: var(--primary-dark);
+    }
+
+    .chatbot-toggle i {
+        font-size: 1.5rem;
+    }
+
+    .chatbot-container {
+        position: fixed;
+        bottom: 100px;
+        right: 30px;
+        width: var(--chatbot-width);
+        max-width: 90vw; /* Ensure it doesn't exceed viewport width */
+        height: 550px;
+        max-height: calc(100vh - 120px); /* Ensure it doesn't exceed viewport height */
+        background-color: var(--white);
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        z-index: 998;
+        transform: translateY(20px) scale(0.95);
+        opacity: 0;
+        pointer-events: none;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+
+    .chatbot-container.active {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+        pointer-events: all;
+    }
+
+    .chatbot-header {
+        padding: 1rem 1.5rem; /* Adjusted padding */
+        background: linear-gradient(45deg, var(--primary), var(--primary-dark));
+        color: var(--white);
+        border-top-left-radius: 20px;
+        border-top-right-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+    }
+
+    .chatbot-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .chatbot-title .bot-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        background-color: var(--white);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .chatbot-title .bot-avatar svg,
+    .chatbot-title .bot-avatar i {
+        color: var(--primary);
+        font-size: 1.2rem;
+    }
+
+    .chatbot-close {
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, 0.8);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        transition: all 0.2s;
+        font-size: 1.2rem;
+    }
+
+    .chatbot-close:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+
+    .chatbot-messages {
+        flex: 1;
+        padding: 1.5rem;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        background-color: var(--light);
+        /* Smooth scrolling */
+        scroll-behavior: smooth;
+    }
+
+    .chat-message {
+        max-width: 85%;
+        padding: 0.8rem 1.1rem; /* Slightly reduced padding */
+        border-radius: 18px;
+        margin-bottom: 0.25rem; /* Reduced margin */
+        animation: fadeIn 0.4s ease-out;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        line-height: 1.5;
+        word-wrap: break-word; /* Ensure long words wrap */
+    }
+
+    .bot-message {
+        background-color: var(--white);
+        color: var(--dark);
+        border-top-left-radius: 4px;
+        align-self: flex-start;
+    }
+
+    .user-message {
+        background-color: var(--primary);
+        color: var(--white);
+        border-top-right-radius: 4px;
+        align-self: flex-end;
+    }
+
+    .bot-thinking {
+        display: flex;
+        gap: 0.3rem;
+        padding: 0.75rem 1rem;
+        background-color: var(--white);
+        border-radius: 18px;
+        border-top-left-radius: 4px;
+        align-self: flex-start;
+        width: fit-content;
+        animation: fadeIn 0.3s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .dot {
+        width: 8px;
+        height: 8px;
+        background-color: var(--gray);
+        border-radius: 50%;
+        animation: bounce 1.4s infinite ease-in-out both;
+    }
+
+    .dot:nth-child(1) { animation-delay: -0.32s; }
+    .dot:nth-child(2) { animation-delay: -0.16s; }
+    .dot:nth-child(3) { animation-delay: 0s; }
+
+    @keyframes bounce {
+        0%, 80%, 100% { transform: scale(0); }
+        40% { transform: scale(1.0); }
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .chatbot-input-section {
+         background-color: var(--white);
+         border-top: 1px solid rgba(0, 0, 0, 0.05);
+         padding: 1rem 1.5rem;
+         flex-shrink: 0;
+    }
+
+    .chatbot-suggestions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem; /* Space between suggestions and input */
+        padding-bottom: 0.5rem; /* Ensure chips don't touch input container */
+    }
+
+    .suggestion-chip {
+        padding: 0.5rem 0.8rem; /* Adjusted padding */
+        background-color: rgba(37, 99, 235, 0.1);
+        color: var(--primary);
+        border-radius: 20px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        font-weight: 500;
+    }
+
+    .suggestion-chip:hover {
+        background-color: rgba(37, 99, 235, 0.2);
+        border-color: rgba(37, 99, 235, 0.5);
+        transform: translateY(-1px);
+    }
+
+
+    .chatbot-input-container {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center; /* Align input and button */
+    }
+
+    .chatbot-input {
+        flex: 1;
+        padding: 0.75rem 1rem; /* Adjusted padding */
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        font-family: var(--font-sans);
+        font-size: 0.95rem;
+        outline: none;
+        transition: var(--transition);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    }
+
+    .chatbot-input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); /* Focus ring */
+    }
+
+    .chatbot-send {
+        background-color: var(--primary);
+        color: var(--white);
+        border: none;
+        width: 40px; /* Adjusted size */
+        height: 40px; /* Adjusted size */
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: var(--transition);
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+        flex-shrink: 0;
+    }
+    .chatbot-send i {
+        font-size: 1rem;
+    }
+
+    .chatbot-send:hover {
+        background-color: var(--primary-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+    .chatbot-send:disabled {
+        background-color: var(--gray);
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    /* Responsive Chatbot */
+    @media (max-width: 768px) {
+        .chatbot-container {
+            bottom: 80px; /* Adjust position relative to toggle */
+            right: 15px;
+            width: calc(100vw - 30px); /* Make it wider on mobile */
+            height: calc(100vh - 100px); /* Make it taller */
+            max-height: 500px; /* Max height constraint */
+        }
+        .chatbot-toggle {
+            bottom: 20px;
+            right: 15px;
+        }
+    }
+
+    @media (max-width: 480px) {
+         .chatbot-header {
+             padding: 0.75rem 1rem;
+         }
+         .chatbot-messages {
+             padding: 1rem;
+         }
+         .chatbot-input-section {
+             padding: 0.75rem 1rem;
+         }
+         .suggestion-chip {
+             font-size: 0.75rem;
+             padding: 0.4rem 0.7rem;
+         }
+         .chatbot-input {
+             font-size: 0.9rem;
+         }
+    }
+
+</style>
+
+<script>
+    // Encapsulated Chatbot Logic
+    // Ensure this script runs only once, even if the component is re-rendered client-side (though less likely with this structure)
+    function initChatbot() {
+        const chatbotToggle = document.getElementById('chatbot-toggle');
+        const chatbotContainer = document.getElementById('chatbot-container');
+        const chatbotClose = document.getElementById('chatbot-close');
+        const chatbotMessages = document.getElementById('chatbot-messages');
+        const chatbotInput = document.getElementById('chatbot-input');
+        const chatbotSend = document.getElementById('chatbot-send');
+        const suggestionsContainer = document.getElementById('chatbot-suggestions');
+
+        if (!chatbotToggle || !chatbotContainer || !chatbotClose || !chatbotMessages || !chatbotInput || !chatbotSend || !suggestionsContainer) {
+            console.error("Chatbot elements not found!");
+            return; // Exit if elements are missing
+        }
+
+        // --- Knowledge Base (Hardcoded - Replace with API later) ---
+        const knowledgeBase = {
+            // ... (Keep the same knowledgeBase content as in the original HTML) ...
+            'greeting': [
+                "Hello! I'm Manuel's virtual assistant. How can I help you today?",
+                "Welcome! I'm an AI chatbot created by Manuel. Do you have any questions about his projects or expertise?"
+            ],
+            'about_manuel': [
+                "Manuel is a professional with dual training in Industrial Engineering and Renewable Energy, specialized in applying data technologies and advanced analytics to drive the energy transition. He currently works as a Data Scientist Lead at Metyis, where he leads projects combining data science and renewable energy."
+            ],
+            'experience': [
+                "Manuel has over 7 years of experience combining technical expertise in data analysis, AI solution development, and deep knowledge of the energy sector. He has worked at companies like Metyis, Holaluz, and FlexiDAO, leading multidisciplinary teams and delivering high-impact projects."
+            ],
+            'skills': [
+                "Manuel's key skills include: Data Science & Machine Learning (predictive modeling, forecasting, ML algorithms), AI & Advanced Analytics, Data Engineering (ETL/ELT, data warehousing), Cloud & Infrastructure (Azure, AWS), Programming (Python, SQL), IoT & Hardware Integration, and Visualization (Power BI)."
+            ],
+            'projects': [
+                "Manuel has led several notable projects, including EVEON (solar self-consumption as a service platform), a Solar Market Intelligence System, and a Predictive Lead Scoring System. Would you like to know more about any of these projects in particular?"
+            ],
+            'eveon': [
+                "EVEON is an innovative solar self-consumption service that democratizes access to solar energy for Spanish households through a fixed monthly fee model. Manuel led the development of the technology platform, including ML algorithms for production and demand forecasting, battery optimization, and custom IoT development. This project represented a €100M investment in renewable energy infrastructure."
+            ],
+            'solar_intelligence': [
+                "The Solar Market Intelligence System was a strategic initiative at Holaluz where Manuel discovered and leveraged regulatory data to extract solar installation patterns across Spain. He transformed complex data into actionable market intelligence using advanced SQL and Python, revolutionizing the commercial strategy by identifying high-potential regions."
+            ],
+            'lead_scoring': [
+                "The Predictive Lead Scoring System is an end-to-end machine learning system that Manuel developed to prioritize high-value prospects in the energy sector. He implemented XGBoost models with CRM integration and advanced monitoring, significantly increasing sales efficiency and improving customer experience."
+            ],
+            'education': [
+                "Manuel holds a Double Master's in Renewable Energy from Universitat Politècnica de Catalunya and KTH Royal Institute of Technology (Sweden), a course in Management and Entrepreneurship from ESADE Business School, and a BSc in Industrial Engineering from Universidad de Buenos Aires."
+            ],
+            'languages': [
+                "Manuel speaks Spanish (native) and English (fluent, professional level)."
+            ],
+            'interests': [
+                "Manuel's professional interests include Energy & Sustainability (renewable energy technologies, energy flexibility, VPPs), Artificial Intelligence & Advanced Analytics, Data Science & Technology, and Business & Innovation."
+            ],
+            'contact': [
+                "You can contact Manuel via email at manuel.vidald@gmail.com, through LinkedIn (Manuel Vidal Dominguez), or by phone at +34 644 096 580."
+            ],
+            'default': [
+                "That's an interesting question. For more detailed information about this, I'd recommend contacting Manuel directly. Can I help you with something else about his professional experience or projects?"
+            ]
+        };
+
+        const initialSuggestions = [
+            "Who is Manuel?",
+            "Featured projects",
+            "Technical skills",
+            "Professional experience"
+        ];
+        let isThinking = false; // Prevent multiple submissions while thinking
+
+        // --- Event Listeners ---
+        chatbotToggle.addEventListener('click', toggleChatbot);
+        chatbotClose.addEventListener('click', closeChatbot);
+        chatbotSend.addEventListener('click', handleSendMessage);
+        chatbotInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault(); // Prevent newline
+                handleSendMessage();
+            }
+        });
+
+        // --- Core Functions ---
+        function toggleChatbot() {
+            const isActive = chatbotContainer.classList.toggle('active');
+            if (isActive && chatbotMessages.children.length === 0) {
+                // First time opening or after clearing
+                 // Remove any existing thinking indicators first
+                removeThinkingIndicator();
+                addBotMessage(getRandomResponse('greeting'));
+                addSuggestionChips(initialSuggestions);
+            }
+            chatbotToggle.setAttribute('aria-expanded', isActive.toString());
+        }
+
+        function closeChatbot() {
+            chatbotContainer.classList.remove('active');
+            chatbotToggle.setAttribute('aria-expanded', 'false');
+        }
+
+        function handleSendMessage() {
+            if (isThinking) return; // Don't send if already processing
+            const message = chatbotInput.value.trim();
+            if (message === '') return;
+
+            addUserMessage(message);
+            chatbotInput.value = '';
+            removeSuggestionChips(); // Clear suggestions after user types
+            showThinking();
+
+            // Simulate processing and get response
+            setTimeout(() => {
+                removeThinkingIndicator();
+                const response = getBotResponse(message);
+                addBotMessage(response);
+                addContextualSuggestions(message); // Add new suggestions based on response
+                isThinking = false; // Allow sending again
+                chatbotSend.disabled = false; // Re-enable send button
+            }, 800 + Math.random() * 700); // Random delay
+        }
+
+        function getBotResponse(message) {
+            message = message.toLowerCase();
+            // --- (Keep the same keyword matching logic as in original HTML) ---
+             if (containsAny(message, ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'greetings'])) {
+                return getRandomResponse('greeting');
+            }
+            else if (containsAny(message, ['who is manuel', 'who are you', 'about manuel', 'tell me about'])) {
+                return getRandomResponse('about_manuel');
+            }
+            else if (containsAny(message, ['experience', 'career', 'work history', 'background'])) {
+                return getRandomResponse('experience');
+            }
+            else if (containsAny(message, ['skills', 'abilities', 'expertise', 'competencies', 'technical'])) {
+                return getRandomResponse('skills');
+            }
+            else if (containsAny(message, ['projects', 'work', 'portfolio', 'cases'])) {
+                return getRandomResponse('projects');
+            }
+            else if (containsAny(message, ['eveon', 'solar service', 'self-consumption'])) {
+                return getRandomResponse('eveon');
+            }
+            else if (containsAny(message, ['intelligence', 'solar market', 'market intelligence'])) {
+                return getRandomResponse('solar_intelligence');
+            }
+            else if (containsAny(message, ['lead scoring', 'leads', 'prediction', 'predictive system'])) {
+                return getRandomResponse('lead_scoring');
+            }
+            else if (containsAny(message, ['education', 'studies', 'university', 'degree', 'master'])) {
+                return getRandomResponse('education');
+            }
+            else if (containsAny(message, ['languages', 'speak', 'speaking'])) {
+                return getRandomResponse('languages');
+            }
+            else if (containsAny(message, ['interests', 'hobbies', 'likes'])) {
+                return getRandomResponse('interests');
+            }
+            else if (containsAny(message, ['contact', 'email', 'phone', 'reach'])) {
+                return getRandomResponse('contact');
+            }
+            else {
+                return getRandomResponse('default');
+            }
+        }
+
+        // --- Helper Functions ---
+        function containsAny(str, terms) {
+            return terms.some(term => str.includes(term));
+        }
+
+        function getRandomResponse(category) {
+            const responses = knowledgeBase[category] || knowledgeBase['default'];
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+
+        function addMessageToChat(message, type) {
+            const messageEl = document.createElement('div');
+            messageEl.classList.add('chat-message', type === 'bot' ? 'bot-message' : 'user-message');
+            messageEl.textContent = message;
+            chatbotMessages.appendChild(messageEl);
+            scrollToBottom();
+        }
+
+        function addBotMessage(message) {
+            addMessageToChat(message, 'bot');
+        }
+
+        function addUserMessage(message) {
+            addMessageToChat(message, 'user');
+        }
+
+        function showThinking() {
+            isThinking = true;
+            chatbotSend.disabled = true; // Disable send button while thinking
+            removeThinkingIndicator(); // Remove any previous indicators
+            const thinkingEl = document.createElement('div');
+            thinkingEl.classList.add('bot-thinking');
+            thinkingEl.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+            chatbotMessages.appendChild(thinkingEl);
+            scrollToBottom();
+        }
+
+        function removeThinkingIndicator() {
+            const thinking = chatbotMessages.querySelector('.bot-thinking');
+            if (thinking) thinking.remove();
+        }
+
+        function addSuggestionChips(suggestions) {
+            removeSuggestionChips(); // Clear previous suggestions
+            if (!suggestions || suggestions.length === 0) return;
+
+            suggestions.forEach(suggestion => {
+                const chip = document.createElement('button'); // Use button for accessibility
+                chip.classList.add('suggestion-chip');
+                chip.textContent = suggestion;
+                chip.type = 'button'; // Prevent form submission if inside a form
+                chip.addEventListener('click', () => {
+                    if (isThinking) return;
+                    addUserMessage(suggestion);
+                    removeSuggestionChips();
+                    showThinking();
+                    setTimeout(() => {
+                        removeThinkingIndicator();
+                        const response = getBotResponse(suggestion);
+                        addBotMessage(response);
+                        addContextualSuggestions(suggestion);
+                        isThinking = false;
+                        chatbotSend.disabled = false;
+                    }, 800 + Math.random() * 700);
+                });
+                suggestionsContainer.appendChild(chip);
+            });
+            scrollToBottom(); // Scroll down after adding chips
+        }
+
+         function removeSuggestionChips() {
+            suggestionsContainer.innerHTML = ''; // Clear existing chips
+        }
+
+        function addContextualSuggestions(message) {
+            message = message.toLowerCase();
+            let suggestions = [];
+            // --- (Keep the same suggestion logic as in original HTML) ---
+            if (containsAny(message, ['who is manuel', 'who are you', 'about manuel', 'tell me about'])) {
+                suggestions = ['Professional experience', 'Technical skills', 'Education'];
+            }
+            else if (containsAny(message, ['experience', 'career', 'work history', 'background'])) {
+                suggestions = ['Featured projects', 'Technical skills', 'Education'];
+            }
+            else if (containsAny(message, ['projects', 'work', 'portfolio', 'cases'])) {
+                suggestions = ['EVEON project', 'Solar Market Intelligence', 'Lead Scoring System'];
+            }
+            else if (containsAny(message, ['eveon', 'solar service', 'self-consumption'])) {
+                suggestions = ['Other projects', 'Technical skills', 'Energy expertise'];
+            }
+             else if (containsAny(message, ['skills', 'abilities', 'expertise', 'competencies', 'technical'])) {
+                suggestions = ['Data Science skills', 'Energy expertise', 'IoT & Hardware'];
+            }
+            else if (containsAny(message, ['contact', 'email', 'phone', 'reach'])) {
+                suggestions = ['About Manuel', 'Featured projects'];
+            }
+            else { // Default/fallback suggestions
+                suggestions = ['Featured projects', 'Technical skills', 'Contact Manuel'];
+            }
+
+            // Avoid showing suggestions if the last message was also a suggestion chip click
+            // (Can refine this logic if needed)
+            const lastUserMessage = chatbotMessages.querySelector('.user-message:last-child');
+            if (!lastUserMessage || !suggestions.includes(lastUserMessage.textContent)) {
+                 addSuggestionChips(suggestions);
+            }
+        }
+
+        function scrollToBottom() {
+            // Use requestAnimationFrame for smoother scrolling after DOM updates
+            requestAnimationFrame(() => {
+                 chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+            });
+        }
+    }
+
+    // Run initialization logic
+    // Use DOMContentLoaded to ensure elements are ready, or run directly if script is at end of body
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initChatbot);
+    } else {
+        initChatbot();
+    }
+
+</script> 

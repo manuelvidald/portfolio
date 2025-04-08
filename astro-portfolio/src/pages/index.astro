@@ -1,0 +1,25 @@
+---
+// src/pages/index.astro
+import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
+import AboutSection from '../components/AboutSection.astro';
+import ProjectsSection from '../components/ProjectsSection.astro';
+import CodeSection from '../components/CodeSection.astro';
+import SkillsSection from '../components/SkillsSection.astro';
+import ContactSection from '../components/ContactSection.astro';
+// Header, Footer, and Chatbot are already included in Layout.astro
+
+const pageTitle = "Manuel Vidal | Data & Energy Expert";
+---
+<Layout title={pageTitle}>
+    <!-- Sections are placed directly inside the main slot of the Layout -->
+    <Hero />
+    <AboutSection />
+    <ProjectsSection />
+    <CodeSection />
+    <SkillsSection />
+    <ContactSection />
+</Layout>
+
+<!-- No page-specific styles needed here as section styles are scoped within components -->
+<!-- No page-specific scripts needed here as component logic is self-contained --> 

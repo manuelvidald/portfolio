@@ -1,0 +1,89 @@
+---
+import AboutCard from './AboutCard.astro';
+
+const aboutData = [
+    {
+        iconClass: "fa-solar-panel",
+        title: "Renewable Energy",
+        description: "Expert in renewable energy technologies, solar self-consumption, energy storage, and flexibility solutions for a sustainable future."
+    },
+    {
+        iconClass: "fa-brain",
+        title: "Data Science",
+        description: "Development and implementation of advanced data analysis and machine learning solutions for business optimization."
+    },
+    {
+        iconClass: "fa-chart-line",
+        title: "Advanced Analytics",
+        description: "Transformation of complex data into actionable insights and effective business strategies."
+    }
+];
+---
+
+<section id="about" class="about">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-eyebrow">About Me</span>
+            <h2 class="section-title">My Expertise</h2>
+            <p class="section-subtitle">
+                I'm a dual-trained professional in Industrial Engineering and Renewable Energy, specialized in
+                applying data technologies and advanced analytics to drive the energy transition.
+            </p>
+        </div>
+
+        <div class="about-content">
+            <div class="about-grid">
+                {aboutData.map(card => (
+                    <AboutCard
+                        iconClass={card.iconClass}
+                        title={card.title}
+                        description={card.description}
+                    />
+                ))}
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    .about {
+        background-color: var(--white);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .about::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 80% 20%, rgba(37, 99, 235, 0.07), transparent 50%);
+        pointer-events: none;
+        z-index: 0; /* Ensure pseudo-element is behind content */
+    }
+
+    /* Section header styles are global, defined in global.css */
+
+    .about-content {
+        position: relative;
+        z-index: 1;
+    }
+
+    .about-grid {
+        display: grid;
+        /* Use repeat(auto-fit, ...) for responsiveness */
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2.5rem;
+        margin-top: 3rem; /* Spacing below section header */
+    }
+
+    /* Styles for AboutCard are in AboutCard.astro */
+
+    @media (max-width: 480px) {
+        .about-grid {
+            grid-template-columns: 1fr; /* Stack cards on small screens */
+        }
+    }
+</style> 

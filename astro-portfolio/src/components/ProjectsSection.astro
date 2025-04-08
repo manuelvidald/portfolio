@@ -1,0 +1,101 @@
+---
+// src/components/ProjectsSection.astro
+import ProjectCard from './ProjectCard.astro';
+
+const projectsData = [
+    {
+        title: "EVEON | Solar Self-Consumption as a Service",
+        description: "Led the development of an innovative solar self-consumption service with a fixed monthly fee model offering up to 30% savings on electricity bills, backed by a €100M investment.",
+        tags: ["Machine Learning", "Azure", "IoT"],
+        imageSrc: "/images/project-eveon.png", // Placeholder - replace with actual image in /public/images/
+        imageAlt: "EVEON Solar Self-Consumption",
+        linkHref: "#" // Placeholder - replace with actual case study link
+    },
+    {
+        title: "Solar Market Intelligence System",
+        description: "Developed a geospatial analysis platform of the Spanish solar market that revolutionized go-to-market strategy by identifying high-potential regions.",
+        tags: ["Data Analytics", "Python", "SQL"],
+        imageSrc: "/images/project-solar-market.png", // Placeholder
+        imageAlt: "Solar Market Intelligence",
+        linkHref: "#" // Placeholder
+    },
+    {
+        title: "Predictive Lead Scoring System",
+        description: "Built an end-to-end machine learning system that significantly increased sales efficiency by prioritizing high-value prospects in the renewable energy sector.",
+        tags: ["XGBoost", "ML Ops", "CRM"],
+        imageSrc: "/images/project-lead-scoring.png", // Placeholder
+        imageAlt: "Lead Scoring System",
+        linkHref: "#" // Placeholder
+    }
+];
+---
+
+<section id="projects" class="projects">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-eyebrow">Featured Projects</span>
+            <h2 class="section-title">My Work</h2>
+            <p class="section-subtitle">
+                Here are some of my most significant projects that showcase my expertise in data science and renewable energy.
+            </p>
+        </div>
+
+        <div class="projects-grid">
+            {projectsData.map(project => (
+                <ProjectCard
+                    title={project.title}
+                    description={project.description}
+                    tags={project.tags}
+                    imageSrc={project.imageSrc}
+                    imageAlt={project.imageAlt}
+                    linkHref={project.linkHref}
+                />
+            ))}
+        </div>
+    </div>
+</section>
+
+<style>
+    .projects {
+        background-color: var(--light);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .projects::before {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 20% 80%, rgba(16, 185, 129, 0.07), transparent 50%);
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .projects-grid {
+        display: grid;
+        /* Adjust minmax for desired card size */
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 2.5rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Styles for ProjectCard are in ProjectCard.astro */
+
+    @media (max-width: 768px) {
+        .projects-grid {
+            grid-template-columns: 1fr; /* Stack cards */
+        }
+    }
+
+    @media (max-width: 480px) {
+         .projects-grid {
+            grid-template-columns: 1fr;
+            gap: 2rem; /* Adjust gap for smaller screens */
+        }
+    }
+
+</style> 

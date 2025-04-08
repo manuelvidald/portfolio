@@ -1,0 +1,460 @@
+---
+// src/components/CodeSection.astro
+import { Code } from 'astro:components'; // Use Astro's built-in Code component
+
+// Example code snippets (replace with actual file reading or imports later if needed)
+const codeSnippets = {
+    solar:
+`# Solar production prediction model using Prophet with MLflow tracking
+import pandas as pd
+import numpy as np
+from prophet import Prophet
+import mlflow
+import mlflow.prophet
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+
+# Set up MLflow experiment
+mlflow.set_experiment("solar_production_forecasting")
+
+def preprocess_solar_data(df):
+    """
+    Preprocess solar production data for Prophet modeling.
+    Args: df: DataFrame with solar production and meteorological variables
+    Returns: DataFrame formatted for Prophet (columns 'ds' and 'y')
+    """
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    prophet_df = df[['timestamp', 'production_kwh']].rename(
+        columns={'timestamp': 'ds', 'production_kwh': 'y'}
+    )
+    q_low = prophet_df['y'].quantile(0.01)
+    q_high = prophet_df['y'].quantile(0.99)
+    prophet_df = prophet_df[(prophet_df['y'] >= q_low) & (prophet_df['y'] <= q_high)]
+    return prophet_df
+
+def train_production_model(df, site_id, include_weather=True):
+    """
+    Train a Prophet model to predict solar production.
+    """
+    with mlflow.start_run(run_name=f"solar_forecast_{site_id}"):
+        prophet_df = preprocess_solar_data(df)
+        model = Prophet(
+            changepoint_prior_scale=0.05,
+            seasonality_prior_scale=15,
+            seasonality_mode='multiplicative',
+            daily_seasonality=True,
+            weekly_seasonality=True,
+            yearly_seasonality=True
+        )
+        if include_weather and 'irradiance' in df.columns:
+            prophet_df['irradiance'] = df['irradiance']
+            model.add_regressor('irradiance')
+        if include_weather and 'temperature' in df.columns:
+            prophet_df['temperature'] = df['temperature']
+            model.add_regressor('temperature')
+        model.fit(prophet_df)
+        future = model.make_future_dataframe(periods=24, freq='H')
+        # ... (add future regressor values)
+        forecast = model.predict(future)
+        # ... (log metrics with MLflow)
+        mlflow.prophet.log_model(model, "prophet-model")
+        return model
+`,
+    battery:
+`# Basic Battery Optimization Logic (Conceptual)
+import numpy as np
+
+def optimize_battery_schedule(prices, solar_forecast, load_forecast, battery_capacity, charge_efficiency, discharge_efficiency):
+    """
+    Determines optimal charge/discharge schedule based on forecasts and prices.
+    (Simplified example - real implementation would use optimization libraries)
+    """
+    schedule = np.zeros_like(prices) # -1: discharge, 1: charge, 0: idle
+    soc = battery_capacity * 0.5 # Start at 50% state of charge
+
+    for i in range(len(prices)):
+        net_load = load_forecast[i] - solar_forecast[i]
+        # Simple greedy approach
+        if net_load > 0: # Need power
+            if prices[i] < np.percentile(prices, 30) and soc < battery_capacity * 0.9: # Low price, charge if not full
+                charge_amount = min(net_load, (battery_capacity - soc) / charge_efficiency)
+                schedule[i] = 1
+                soc += charge_amount * charge_efficiency
+            elif prices[i] > np.percentile(prices, 70) and soc > battery_capacity * 0.1: # High price, discharge if possible
+                discharge_amount = min(net_load, (soc - battery_capacity * 0.1) * discharge_efficiency)
+                schedule[i] = -1
+                soc -= discharge_amount / discharge_efficiency
+            else: # Grid power or curtail load if needed (simplified)
+                pass
+        else: # Excess solar
+            if soc < battery_capacity * 0.95: # Charge if not full
+                charge_amount = min(abs(net_load), (battery_capacity - soc) / charge_efficiency)
+                schedule[i] = 1
+                soc += charge_amount * charge_efficiency
+            else: # Curtail solar (simplified)
+                pass
+
+    return schedule
+`,
+    lead_scoring:
+`# Lead Scoring Model Training Snippet (using XGBoost)
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, roc_auc_score
+import mlflow
+import mlflow.xgboost
+
+# Assume X contains features (company size, industry, website visits, etc.)
+# Assume y contains the target variable (1 for converted, 0 for not converted)
+
+def train_lead_scoring_model(X, y):
+    """
+    Trains an XGBoost classifier for lead scoring.
+    """
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+
+    with mlflow.start_run(run_name="lead_scoring_xgb"):
+        # Define model parameters (potentially tuned)
+        params = {
+            'objective': 'binary:logistic',
+            'eval_metric': 'auc',
+            'eta': 0.1,
+            'max_depth': 6,
+            'subsample': 0.8,
+            'colsample_bytree': 0.8,
+            'min_child_weight': 1,
+            'gamma': 0.1,
+            'lambda': 1,
+            'alpha': 0
+        }
+
+        dtrain = xgb.DMatrix(X_train, label=y_train)
+        dtest = xgb.DMatrix(X_test, label=y_test)
+
+        watchlist = [(dtrain, 'train'), (dtest, 'eval')]
+
+        # Train the model
+        model = xgb.train(
+            params,
+            dtrain,
+            num_boost_round=100,
+            evals=watchlist,
+            early_stopping_rounds=10,
+            verbose_eval=False
+        )
+
+        # Evaluate
+        y_pred_proba = model.predict(dtest)
+        y_pred = (y_pred_proba > 0.5).astype(int)
+        auc = roc_auc_score(y_test, y_pred_proba)
+        report = classification_report(y_test, y_pred, output_dict=True)
+
+        # Log parameters, metrics, and model with MLflow
+        mlflow.log_params(params)
+        mlflow.log_metric("test_auc", auc)
+        mlflow.log_metric("test_precision", report['1']['precision'])
+        mlflow.log_metric("test_recall", report['1']['recall'])
+        mlflow.xgboost.log_model(model, "xgboost-model", signature=mlflow.models.infer_signature(X_test, y_pred_proba))
+
+        print(f"Test AUC: {auc:.4f}")
+        print(classification_report(y_test, y_pred))
+
+    return model
+`
+};
+
+const initialTab = 'solar';
+const initialCode = codeSnippets[initialTab];
+const initialTitle = "solar_prediction_model.py";
+---
+
+<section id="code" class="code-section">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-eyebrow">Technical Expertise</span>
+            <h2 class="section-title">Code Showcase</h2>
+            <p class="section-subtitle">
+                Examples demonstrating technical capabilities in data science, ML, and energy optimization.
+            </p>
+        </div>
+
+        <div class="code-tabs" id="code-tabs">
+            <button class="code-tab" data-tab="solar" data-filename="solar_prediction_model.py">Solar Prediction Model</button>
+            <button class="code-tab" data-tab="battery" data-filename="battery_optimization.py">Battery Optimization</button>
+            <button class="code-tab" data-tab="lead_scoring" data-filename="lead_scoring_model.py">Lead Scoring Model</button>
+        </div>
+
+        <div class="code-container">
+            <div class="code-header">
+                <div class="code-title" id="code-title">
+                    <i class="fas fa-file-code"></i>
+                    <span id="code-filename">{initialTitle}</span>
+                </div>
+                <div class="code-actions">
+                    <button class="code-action" id="copy-code-btn" title="Copy code">
+                        <i class="fas fa-copy"></i> <span class="copy-text">Copy</span>
+                    </button>
+                </div>
+            </div>
+            <div class="code-content" id="code-content">
+                <!-- Astro's Code component handles syntax highlighting -->
+                <Code code={initialCode} lang="python" theme="github-dark" />
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    .code-section {
+        background-color: var(--dark);
+        color: var(--white);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .code-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 70% 30%, rgba(139, 92, 246, 0.15), transparent 50%);
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .code-section .section-header .section-title {
+        color: var(--white);
+    }
+
+    .code-section .section-header .section-subtitle {
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .code-tabs {
+        display: flex;
+        margin-bottom: 1.5rem;
+        overflow-x: auto;
+        /* Style for the container */
+        background-color: rgba(30, 41, 59, 0.7);
+        border-radius: 8px 8px 0 0;
+        position: relative;
+        z-index: 1;
+        padding: 0.5rem; /* Add padding for spacing */
+        gap: 0.5rem; /* Gap between buttons */
+        width: fit-content; /* Make container only as wide as needed */
+        max-width: 100%; /* Ensure it doesn't overflow container */
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .code-tab {
+        padding: 0.8rem 1.5rem;
+        background-color: transparent;
+        color: var(--gray);
+        border: none;
+        cursor: pointer;
+        font-family: var(--font-sans);
+        font-weight: 600;
+        transition: var(--transition);
+        flex-shrink: 0;
+        border-radius: 6px; /* Rounded corners for tabs */
+        white-space: nowrap; /* Prevent wrapping */
+    }
+
+    .code-tab.active {
+        color: var(--white);
+        background-color: rgba(0, 0, 0, 0.3);
+        /* background-color: var(--primary); Option for primary color active tab */
+    }
+
+    .code-tab:hover:not(.active) {
+        color: rgba(255, 255, 255, 0.9);
+        background-color: rgba(0, 0, 0, 0.1);
+    }
+
+    .code-container {
+        background-color: #0d1117; /* Match GitHub dark theme */
+        border-radius: var(--radius); /* Apply radius to container */
+        overflow: hidden;
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        position: relative;
+        z-index: 1;
+        margin-top: -1.5rem; /* Overlap with tabs slightly */
+        border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border */
+    }
+
+    .code-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        background-color: rgba(0, 0, 0, 0.3);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .code-title {
+        color: var(--white);
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-family: var(--font-mono);
+        font-size: 0.9rem;
+    }
+
+    .code-title svg, .code-title i {
+        color: var(--secondary);
+        font-size: 1.1rem;
+    }
+
+    .code-actions {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .code-action {
+        background: transparent;
+        border: 1px solid transparent;
+        color: var(--gray);
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 0.8rem;
+        border-radius: 6px;
+    }
+
+    .code-action:hover {
+        color: var(--white);
+        background-color: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .code-action .copy-text.copied {
+        color: var(--secondary);
+    }
+
+    .code-content {
+        /* Padding is handled by the Code component's theme */
+        overflow-x: auto;
+        /* Ensure the background matches the theme */
+        background-color: #0d1117;
+    }
+
+    .code-content :global(pre) {
+        /* Override default pre margin/padding if needed */
+        margin: 0 !important;
+        padding: 1.5rem !important; /* Example: Ensure padding */
+        border-radius: 0 0 var(--radius) var(--radius); /* Match container bottom radius */
+    }
+
+    @media (max-width: 768px) {
+        .code-tabs {
+            /* Allow tabs to wrap if needed, though overflow-x: auto handles scrolling */
+            /* flex-wrap: wrap; */
+            justify-content: flex-start; /* Align tabs to the start */
+            width: 100%; /* Allow tabs container to take full width if needed */
+        }
+        .code-tab {
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
+        }
+        .code-header {
+            padding: 0.75rem 1rem;
+        }
+        .code-content :global(pre) {
+             padding: 1rem !important;
+        }
+    }
+
+</style>
+
+<script define:vars={{ codeSnippets }}>
+    const tabsContainer = document.getElementById('code-tabs');
+    const codeContentDiv = document.getElementById('code-content');
+    const copyCodeBtn = document.getElementById('copy-code-btn');
+    const codeFilenameSpan = document.getElementById('code-filename');
+    const codeTitle = document.getElementById('code-title');
+
+    if (tabsContainer && codeContentDiv && copyCodeBtn && codeFilenameSpan && codeTitle) {
+        // Set initial active tab
+        const initialActiveTab = tabsContainer.querySelector('.code-tab[data-tab="solar"]');
+        if (initialActiveTab) {
+            initialActiveTab.classList.add('active');
+        }
+
+        tabsContainer.addEventListener('click', (event) => {
+            const target = event.target;
+            if (target.classList.contains('code-tab')) {
+                // Remove active class from all tabs
+                tabsContainer.querySelectorAll('.code-tab').forEach(tab => tab.classList.remove('active'));
+
+                // Add active class to the clicked tab
+                target.classList.add('active');
+
+                // Update code content
+                const tabKey = target.dataset.tab;
+                const filename = target.dataset.filename;
+                const code = codeSnippets[tabKey];
+
+                if (code !== undefined) {
+                    // Replace the innerHTML with a new Code component structure
+                    // Note: This re-renders the component; direct prop update isn't standard JS
+                    // A framework like React/Vue/Svelte handles this differently.
+                    // For Astro, re-rendering the content is a common approach for client-side updates.
+                    codeContentDiv.innerHTML = `<pre class="astro-code github-dark" style="background-color: #0d1117; overflow-x: auto;"><code>${escapeHtml(code)}</code></pre>`;
+                    // Re-apply highlighting manually or use a client-side library if needed for complex cases.
+                    // Astro's <Code> component primarily works at build time.
+                    // For dynamic client-side updates like this, manual handling or a different library might be needed for full highlighting.
+                    // We'll rely on the basic <pre><code> structure here for simplicity.
+                    // Consider using highlight.js or Prism.js client-side if full dynamic highlighting is crucial.
+                    codeFilenameSpan.textContent = filename || 'code_snippet.py';
+
+                } else {
+                    codeContentDiv.innerHTML = '<p style="padding: 1.5rem; color: var(--gray);">Code snippet not found.</p>';
+                    codeFilenameSpan.textContent = 'Error';
+                }
+            }
+        });
+
+        // Copy code functionality
+        copyCodeBtn.addEventListener('click', async () => {
+            const codeBlock = codeContentDiv.querySelector('code');
+            if (codeBlock && navigator.clipboard) {
+                try {
+                    await navigator.clipboard.writeText(codeBlock.textContent);
+                    const copyTextSpan = copyCodeBtn.querySelector('.copy-text');
+                    const originalText = copyTextSpan.textContent;
+                    copyTextSpan.textContent = 'Copied!';
+                    copyTextSpan.classList.add('copied');
+                    copyCodeBtn.querySelector('i').classList.remove('fa-copy');
+                    copyCodeBtn.querySelector('i').classList.add('fa-check');
+
+                    setTimeout(() => {
+                        copyTextSpan.textContent = originalText;
+                        copyTextSpan.classList.remove('copied');
+                        copyCodeBtn.querySelector('i').classList.add('fa-copy');
+                        copyCodeBtn.querySelector('i').classList.remove('fa-check');
+                    }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy code: ', err);
+                    alert('Failed to copy code.');
+                }
+            }
+        });
+    }
+
+    // Helper to escape HTML for rendering in <pre><code>
+    function escapeHtml(unsafe) {
+        return unsafe
+             .replace(/&/g, "&amp;")
+             .replace(/</g, "&lt;")
+             .replace(/>/g, "&gt;")
+             .replace(/"/g, "&quot;")
+             .replace(/'/g, "&#039;");
+     }
+
+</script> 

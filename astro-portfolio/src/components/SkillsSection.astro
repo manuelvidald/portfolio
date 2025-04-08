@@ -1,0 +1,138 @@
+---
+// src/components/SkillsSection.astro
+import SkillCard from './SkillCard.astro';
+
+const skillsData = [
+    {
+        iconClass: "fa-brain",
+        title: "Data Science & ML",
+        skills: [
+            "Predictive Modeling & Forecasting",
+            "Machine Learning Algorithms",
+            "Time Series Analysis",
+            "Model Deployment & MLOps",
+            "ML Experiment Tracking"
+        ]
+    },
+    {
+        iconClass: "fa-database",
+        title: "Data Engineering",
+        skills: [
+            "ETL/ELT Pipeline Development",
+            "Data Warehousing",
+            "Data Quality & Testing",
+            "Data Modeling",
+            "SQL & Python"
+        ]
+    },
+    {
+        iconClass: "fa-cloud",
+        title: "Cloud & Infrastructure",
+        skills: [
+            "Microsoft Azure",
+            "Azure Databricks",
+            "AWS (S3, Data Lake)",
+            "Cloud Architecture",
+            "Snowflake"
+        ]
+    },
+    {
+        iconClass: "fa-solar-panel",
+        title: "Energy Expertise",
+        skills: [
+            "Renewable Energy Technologies",
+            "Energy Storage Solutions",
+            "Distributed Energy Resources",
+            "Smart Grid Technologies",
+            "Energy Markets & Trading"
+        ]
+    },
+    {
+        iconClass: "fa-chart-bar",
+        title: "Visualization & BI",
+        skills: [
+            "Power BI",
+            "Dashboard Development",
+            "Data Storytelling",
+            "KPI Design & Business Metrics",
+            "Interactive Dashboards"
+        ]
+    },
+    {
+        iconClass: "fa-microchip",
+        title: "IoT & Hardware",
+        skills: [
+            "IoT Architecture",
+            "Hardware Integration",
+            "Raspberry Pi, ESP32",
+            "MQTT Protocol",
+            "Streaming Data Processing"
+        ]
+    }
+];
+---
+
+<section id="skills" class="skills">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-eyebrow">My Skills</span>
+            <h2 class="section-title">Technical Expertise</h2>
+            <p class="section-subtitle">
+                I have a diverse set of skills that combine data science, energy knowledge, and technical proficiency.
+            </p>
+        </div>
+
+        <div class="skills-grid">
+            {skillsData.map(category => (
+                <SkillCard
+                    iconClass={category.iconClass}
+                    title={category.title}
+                    skills={category.skills}
+                />
+            ))}
+        </div>
+    </div>
+</section>
+
+<style>
+    .skills {
+        background-color: var(--white);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .skills::before {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 80% 80%, rgba(37, 99, 235, 0.07), transparent 50%);
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .skills-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2.5rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Styles for SkillCard are in SkillCard.astro */
+
+    @media (max-width: 768px) {
+        .skills-grid {
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Adjust min size */
+        }
+    }
+
+    @media (max-width: 480px) {
+         .skills-grid {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+    }
+</style> 
